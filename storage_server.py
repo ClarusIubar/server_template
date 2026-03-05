@@ -1,16 +1,22 @@
+import asyncio
 import uuid
+import os
 
 class StorageServer:
-    """[스토리지 서버] 비정형 데이터(이미지) 저장 담당"""
     def __init__(self):
+        # 운영 레벨 위임: 저장 경로나 클러스터 ID는 환경 변수에서 가져옴
+        self.node_id = os.getenv("NODE_ID", "storage-node-01")
         self._disk = {}
 
-    def upload(self, content: str) -> str:
-        file_id = uuid.uuid4().hex[:8]
-        url = f"https://cdn.myapp.com/assets/{file_id}.png"
-        self._disk[url] = content
-        print(f"  [Log-Storage] 파일 저장 완료: {url}")
-        return url
+    async def upload(self, content: str) -> str:
+        """비동기 디스크 I/O 시뮬레이션"""
+        await asyncio.sleep(0.5) # I/O Latency
+        # 하드코딩된 URL이 아닌 '내부 상대 경로'만 반환
+        internal_path = f"assets/{self.node_id}/{uuid.uuid4().hex[:8]}.png"
+        self._disk[internal_path] = content
+        print(f"  [Storage] Data saved at: {internal_path}")
+        return internal_path
 
-    def download(self, url: str) -> str:
-        return self._disk.get(url, "404 Not Found")
+    async def download(self, path: str) -> str:
+        await asyncio.sleep(0.2)
+        return self._disk.get(path, "404 Not Found")

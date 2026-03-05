@@ -1,17 +1,26 @@
+import asyncio
+
 class ClientServer:
-    """[클라이언트 서버] UI 및 사용자 요청 시작점"""
-    def __init__(self, proxy_instance, storage_instance):
-        self.proxy = proxy_instance
-        self.storage = storage_instance
+    def __init__(self, proxy, storage):
+        self.proxy = proxy
+        self.storage = storage
         self.origin = "https://my-app.com"
 
-    def run_scenario(self, uid: str):
-        print(f"\n[Client] 1. 이미지 업로드")
-        url = self.storage.upload("PNG_DATA_001")
+    async def user_action_flow(self, uid: str):
+        print(f"\n[*] Client Scenario Start: {uid}")
         
-        print(f"\n[Client] 2. 프로필 업데이트 요청")
-        self.proxy.dispatch(self.origin, "UPDATE_PROFILE", {"uid": uid, "url": url})
+        # 1. 업로드
+        path = await self.storage.upload(f"RAW_DATA_OF_{uid}")
         
-        print(f"\n[Client] 3. 프로필 조회 (최초)")
-        res = self.proxy.dispatch(self.origin, "GET_PROFILE", {"uid": uid})
-        print(f"  >> 결과: {res}")
+        # 2. 업데이트
+        await self.proxy.handle_request(self.origin, "UPDATE_PROFILE", {"uid": uid, "path": path})
+        
+        # 3. 조회 및 검증
+        profile = await self.proxy.handle_request(self.origin, "GET_PROFILE", {"uid": uid})
+        
+        # 💡 KeyError 방지: 데이터 존재 확인 후 출력
+        if profile and 'uid' in profile:
+            url = profile.get('full_url', 'N/A')
+            print(f"[*] Client Received Profile: {profile['uid']} | URL: {url}")
+        else:
+            print(f"[!] Error: Profile for {uid} not found or invalid response.")
